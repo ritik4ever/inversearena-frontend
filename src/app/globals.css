@@ -1,27 +1,41 @@
 @import "tailwindcss";
 
+@theme {
+  --color-neon-green: #37FF1C;
+  --color-neon-pink: #FF0055;
+  --color-dark-bg: #09101D;
+  --color-card-bg: #0D1117;
+  --color-border-gray: #1E232B;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09101D;
+  --foreground: #FFFFFF;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth;
+  font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+::selection {
+  background-color: #37FF1C;
+  color: #000000;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui;
+  /* Grid with very thin neon-green lines */
+  background-image:
+    linear-gradient(rgba(55, 255, 28, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55, 255, 28, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-attachment: fixed;
 }
 
+/* Custom class for the thin branding font */
+.font-extralight {
+  font-weight: 200;
+}
