@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { ReactNode } from "react";
+import { NotificationProvider } from "@/components/ui/NotificationProvider";
 
 // Dynamically import WalletProvider to avoid SSR issues with localStorage
 const WalletProvider = dynamic(
@@ -10,5 +11,9 @@ const WalletProvider = dynamic(
 );
 
 export function ClientProviders({ children }: { children: ReactNode }) {
-    return <WalletProvider>{children}</WalletProvider>;
+    return (
+        <NotificationProvider>
+            <WalletProvider>{children}</WalletProvider>
+        </NotificationProvider>
+    );
 }
