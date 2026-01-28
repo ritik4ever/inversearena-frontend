@@ -14,7 +14,7 @@ export default function GamesPage() {
 
       <GamesFilters />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 grow">
         {/* Top row: Featured + Medium */}
         <ArenaCard arena={mockArenas[0]} />
         <ArenaCard arena={mockArenas[1]} />

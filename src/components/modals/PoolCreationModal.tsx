@@ -60,7 +60,7 @@ export function PoolCreationModal({
       size="lg"
       position="center"
       ariaLabel="Pool Creation"
-      className="max-w-[1000px]! bg-[#0F172A]! rounded-none! border-3 border-black"
+      className="max-w-250! bg-background-dark! rounded-none! border-3 border-black"
     >
       <div className="p-6 lg:p-8 font-display relative">
         <button
@@ -91,7 +91,7 @@ export function PoolCreationModal({
                   Stake Amount
                 </h3>
               </div>
-              <div className="flex gap-0 border-3 border-black bg-[#0F172A]">
+              <div className="flex gap-0 border-3 border-black bg-background-dark">
                 <input
                   type="number"
                   value={stakeAmount}
@@ -126,7 +126,7 @@ export function PoolCreationModal({
                     className={`border-3 border-black py-3 font-black text-lg transition-all ${
                       roundSpeed === speed
                         ? "bg-primary text-black"
-                        : "bg-[#0F172A] text-white hover:bg-primary hover:text-black"
+                        : "bg-background-dark text-white hover:bg-primary hover:text-black"
                     }`}
                   >
                     {speed}
@@ -142,7 +142,7 @@ export function PoolCreationModal({
                   Arena Capacity
                 </h3>
               </div>
-              <div className="flex items-center justify-between border-3 border-black bg-[#0F172A] p-2">
+              <div className="flex items-center justify-between border-3 border-black bg-background-dark p-2">
                 <button
                   type="button"
                   onClick={handleDecreaseCapacity}

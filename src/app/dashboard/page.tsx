@@ -20,7 +20,6 @@ import {
   globalIntelItems,
   recentGames,
   activeAnnouncement,
-  networkMetrics,
 } from "@/features/dashboard-home/mockHome";
 
 export default function DashboardHomePage() {
@@ -52,7 +51,7 @@ export default function DashboardHomePage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <RecentGames games={recentGames} />
         <Announcements announcement={activeAnnouncement} />
-        <MetricsPanel metrics={networkMetrics} />
+        <MetricsPanel />
       </div>
 
       <PoolCreationModal
