@@ -7,6 +7,7 @@ import {
   TensionBar,
   ChooseYourFate,
   TotalYieldPot,
+  EliminationSummaryOverlay,
 } from "@/components/arena/core";
 import { useWallet } from "@/shared-d/hooks/useWallet";
 import { TransactionModal } from "@/components/modals/TransactionModal";
@@ -22,6 +23,7 @@ export default function ArenaPage() {
   const [selectedChoice, setSelectedChoice] = useState<"heads" | "tails" | null>(null);
   const [isJoined, setIsJoined] = useState(false); // Mock state for demo
   const [hasWon, setHasWon] = useState(false); // Mock win state
+  const [showEliminationSummary, setShowEliminationSummary] = useState(false);
 
   // Transaction Modal State
   const [showTxModal, setShowTxModal] = useState(false);
@@ -50,8 +52,11 @@ export default function ArenaPage() {
               </span>
             </div>
             <div className="flex gap-3">
-              <button className="border border-white/20 px-4 py-2 font-pixel text-[8px] text-white tracking-wider hover:bg-white/5">
-                SOROBAN LIVE
+              <button
+                onClick={() => setShowEliminationSummary(true)}
+                className="border border-neon-pink px-4 py-2 font-pixel text-[8px] text-neon-pink tracking-wider hover:bg-neon-pink/10"
+              >
+                TEST ELIMINATION
               </button>
               <button className="border border-white/20 px-4 py-2 font-pixel text-[8px] text-white tracking-wider hover:bg-white/5">
                 SOROBAN LIVE
@@ -290,6 +295,18 @@ export default function ArenaPage() {
             throw e;
           }
         }}
+      />
+
+      <EliminationSummaryOverlay
+        isOpen={showEliminationSummary}
+        roundsSurvived={3}
+        yieldEarned={1.20}
+        isSorobanSynced={true}
+        vaultStatus="safe"
+        lockTimeRemaining={12}
+        txLedgerUrl="https://stellar.expert/explorer/testnet"
+        onExitToLobby={() => setShowEliminationSummary(false)}
+        onJoinNewArena={() => setShowEliminationSummary(false)}
       />
 
     </>
