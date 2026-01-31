@@ -1,297 +1,180 @@
 "use client";
 
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type RoundStatus = "prevailed" | "voided";
-
-interface RoundResolvedOverlayProps {
-  isOpen: boolean;
-  status: RoundStatus;
+export interface RoundResolvedOverlayProps {
+  isOpen?: boolean;
+  status: "survived" | "eliminated";
   roundNumber: number;
-  casualties: number;
-  victors: number;
-  majorityPercent: number;
-  minorityPercent: number;
-  winnerPath: "heads" | "tails";
-  txHash?: string;
-  nextRoundCountdown?: number;
+  livePopulation: number;
+  totalPopulation: number;
+  eliminatedPercent: number;
+  currentPot: number;
+  potGrowth: number;
+  majorityChoice: "heads" | "tails";
+  txHash: string;
   onProceed: () => void;
-  onJoinAnother?: () => void;
 }
 
-export function RoundResolvedOverlay({
-  isOpen,
+const backdrop = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+const container = {
+  hidden: { opacity: 0, scale: 0.98 },
+  visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 260, damping: 25 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1 } }),
+};
+
+export const RoundResolvedOverlay: React.FC<RoundResolvedOverlayProps> = ({
+  isOpen = false,
   status,
   roundNumber,
-  casualties,
-  victors,
-  majorityPercent,
-  minorityPercent,
-  winnerPath,
-  nextRoundCountdown = 28,
+  livePopulation,
+  totalPopulation,
+  eliminatedPercent,
+  currentPot,
+  potGrowth,
+  majorityChoice,
+  txHash,
   onProceed,
-  onJoinAnother,
-}: RoundResolvedOverlayProps) {
-  const isPrevailed = status === "prevailed";
+}) => {
+  const [holding, setHolding] = useState(false);
+  const holdTimer = useRef<number | null>(null);
+  const holdProgress = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) window.clearTimeout(holdTimer.current);
+    };
+  }, []);
+
+  const startHold = () => {
+    setHolding(true);
+    if (holdProgress.current) holdProgress.current.style.width = "0%";
+    let start = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(100, (elapsed / 1000) * 100);
+      if (holdProgress.current) holdProgress.current.style.width = `${pct}%`;
+      if (elapsed >= 1000) {
+        setHolding(false);
+        onProceed();
+      } else {
+        holdTimer.current = window.setTimeout(tick, 16) as unknown as number;
+      }
+    };
+    holdTimer.current = window.setTimeout(tick, 16) as unknown as number;
+  };
+
+  const cancelHold = () => {
+    setHolding(false);
+    if (holdTimer.current) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    if (holdProgress.current) holdProgress.current.style.width = "0%";
+  };
+
+  const isSurvived = status === "survived";
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 overflow-auto"
+          key="round-resolved-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          variants={backdrop}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
         >
-          {/* Split Background - Left (Voided/Dark) */}
-          <div className="absolute inset-y-0 left-0 w-1/2 bg-[#0a0a0a] overflow-hidden">
-            {/* Diagonal ELIMINATED stripe */}
-            <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: "-10%", opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="absolute inset-0 flex items-center"
-            >
-              <span
-                className="font-black text-[100px] md:text-[140px] lg:text-[180px] text-neon-pink whitespace-nowrap select-none tracking-tight"
-                style={{ transform: "rotate(-15deg)", opacity: 0.3 }}
-              >
-                ELIMINATED
-              </span>
-            </motion.div>
-          </div>
+          <motion.div className="absolute inset-0 bg-black/80" aria-hidden />
 
-          {/* Split Background - Right (Prevailed/Gray with green border) */}
-          <div
-            className={`absolute inset-y-0 right-0 w-1/2 overflow-hidden bg-[#4a4a4a] ${
-              isPrevailed ? "border-l-4 border-t-4 border-neon-green" : ""
-            }`}
+          <motion.div
+            className="relative w-full max-w-6xl mx-4 md:mx-8 lg:mx-0 p-6 md:p-10 rounded-lg border border-white/5 bg-[rgb(10,10,10)]"
+            variants={container}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
           >
-            {/* Background winner text */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <span className="font-bold text-[80px] md:text-[120px] lg:text-[150px] text-white/10 whitespace-nowrap select-none">
-                {winnerPath.toUpperCase()}
-              </span>
-            </motion.div>
-
-            {/* SURVIVED Badge - positioned inside right panel */}
-            {isPrevailed && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.6, type: "spring" }}
-                className="absolute bottom-8 right-8"
+            <div className="text-center mb-6">
+              <div className="font-mono text-[10px] text-white/60 tracking-wider">ROUND {roundNumber}: RESOLVED</div>
+              <motion.h2
+                className={`mt-4 font-pixel text-5xl md:text-6xl leading-none ${isSurvived ? "text-neon-green" : "text-neon-pink"}`}
+                animate={{ opacity: [0.9, 1, 0.9], filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"] }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                <span className="bg-neon-green text-black font-pixel text-sm px-6 py-3 border-2 border-black">
-                  SURVIVED
-                </span>
+                {isSurvived ? "YOU SURVIVED" : "YOU ARE ELIMINATED"}
+              </motion.h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="bg-card-bg p-5 rounded-lg border border-neon-green/20">
+                <p className="font-pixel text-[10px] text-white/60 tracking-wider mb-2">LIVE POPULATION</p>
+                <div className="flex items-baseline gap-3">
+                  <div className="font-pixel text-4xl text-white">{livePopulation}</div>
+                  <div className="font-pixel text-xl text-white/40">/{totalPopulation}</div>
+                </div>
+                <p className="mt-3 text-sm text-neon-pink">-{eliminatedPercent}% ELIMINATED</p>
               </motion.div>
-            )}
-          </div>
 
-          <div className="relative min-h-screen p-4 md:p-6">
-            <div className="max-w-6xl mx-auto">
-              {/* Header */}
-              <header className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-neon-pink" />
-                    <span className="font-pixel text-xs text-white tracking-wider">
-                      INVERSE ARENA
-                    </span>
-                  </div>
-                  <nav className="hidden md:flex gap-6 font-pixel text-[10px] tracking-wider">
-                    <span className="text-white/40">ARENA</span>
-                    <span className="text-neon-pink">HISTORY</span>
-                    <span className="text-white/40">VAULT</span>
-                  </nav>
+              <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible" className="bg-card-bg p-5 rounded-lg border border-neon-green/20">
+                <p className="font-pixel text-[10px] text-white/60 tracking-wider mb-2">CURRENT POT (RWA YIELD)</p>
+                <div className="flex items-baseline gap-3">
+                  <div className="font-pixel text-4xl text-white">${currentPot.toLocaleString()}</div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-pixel text-[8px] text-white/40 text-right">
-                    NETWORK<br />
-                    <span className="text-neon-green">SOROBAN MAINNET</span>
-                  </span>
-                  <button className="bg-neon-pink px-4 py-2 font-pixel text-[8px] text-white">
-                    0X71C...4A2
-                  </button>
+                <p className="mt-3 text-sm text-neon-green">+{potGrowth}% GROWTH</p>
+              </motion.div>
+
+              <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible" className="bg-card-bg p-5 rounded-lg border border-white/5 flex flex-col justify-center items-center">
+                <p className="font-pixel text-[10px] text-white/60 tracking-wider mb-2">MAJORITY CHOICE</p>
+                <div className="text-4xl font-pixel text-white/80 uppercase tracking-wider">{majorityChoice.toUpperCase()}</div>
+                <div className="mt-4 w-full bg-black/20 rounded h-14 flex items-center justify-center">
+                  <span className={`px-4 py-1 font-bold ${isSurvived ? "bg-neon-green text-black" : "bg-neon-pink text-white"} rounded`}>{isSurvived ? "ELIMINATED" : "ELIMINATED"}</span>
                 </div>
-              </header>
+              </motion.div>
+            </div>
 
-              {/* Status Sections */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-0 mb-6">
-                {/* Majority Status - Voided */}
-                <motion.div
-                  initial={{ x: -50, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="p-6"
-                >
-                  <p className="font-pixel text-[8px] text-neon-pink tracking-wider mb-2">
-                    MAJORITY STATUS
-                  </p>
-                  <p className="font-pixel text-2xl md:text-4xl text-white">
-                    {majorityPercent}% <span className="text-white">VOIDED</span>
-                  </p>
-                </motion.div>
+            <div className="mb-6">
+              <div className="w-full rounded-md overflow-hidden bg-neon-green/5">
+                <div className="bg-neon-green px-6 py-3 flex justify-between items-center">
+                  <div className="font-pixel text-sm text-black/90">VERIFICATION: MINORITY CONSENSUS ACHIEVED</div>
+                  <div className="font-mono text-xs text-black/80">{txHash}</div>
+                </div>
+              </div>
+            </div>
 
-                {/* Minority Status - Prevailed */}
-                <motion.div
-                  initial={{ x: 50, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="p-6"
-                >
-                  <p className="font-pixel text-[8px] text-neon-green tracking-wider mb-2 text-right">
-                    MINORITY STATUS
-                  </p>
-                  <p className="font-pixel text-2xl md:text-4xl text-right text-neon-green">
-                    {minorityPercent}% PREVAILED
-                  </p>
-                </motion.div>
+            <div className="flex flex-col items-center gap-4">
+              <div
+                role="button"
+                aria-label="Hold for survival"
+                onPointerDown={startHold}
+                onPointerUp={cancelHold}
+                onPointerLeave={cancelHold}
+                onTouchStart={startHold}
+                onTouchEnd={cancelHold}
+                className="relative w-64 md:w-96 bg-neon-green text-black font-pixel text-lg py-4 rounded-md cursor-pointer select-none flex items-center justify-center"
+              >
+                HOLD FOR SURVIVAL
+                <div className="absolute left-0 bottom-0 h-1 bg-black/20 w-full">
+                  <div ref={holdProgress} className="h-full bg-black" style={{ width: 0 }} />
+                </div>
               </div>
 
-              {/* Main Banner */}
-              <motion.div
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-center mb-8"
-              >
-                <span className="inline-block bg-neon-pink text-white font-pixel text-[8px] px-4 py-2 mb-4">
-                  PHASE {String(roundNumber).padStart(2, "0")} RESOLVED
-                </span>
-                <h1 className="font-pixel text-3xl md:text-5xl text-white mb-3">
-                  ROUND {roundNumber} COMPLETE
-                </h1>
-                <p className="font-pixel text-[10px] text-white/40 tracking-wider">
-                  THE WEAK WERE MANY, THE STRONG WERE FEW
-                </p>
-              </motion.div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-6 max-w-2xl mx-auto">
-                {/* Casualties Card */}
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="bg-[#1a1a1a] border border-zinc-800 p-4"
-                >
-                  <p className="font-pixel text-[8px] text-white/40 tracking-wider mb-2">
-                    CASUALTIES
-                  </p>
-                  <p className="font-pixel text-3xl text-neon-pink">
-                    {casualties} <span className="text-base">ELIMINATED</span>
-                  </p>
-                </motion.div>
-
-                {/* Victors Card */}
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="bg-[#1a1a1a] border border-zinc-800 p-4"
-                >
-                  <p className="font-pixel text-[8px] text-white/40 tracking-wider mb-2">
-                    VICTORS
-                  </p>
-                  <p className="font-pixel text-3xl text-neon-green">
-                    {victors} <span className="text-base">REMAINING</span>
-                  </p>
-                </motion.div>
-              </div>
-
-              {/* Action Paths - Single white card with both options */}
-              <motion.div
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="max-w-xl mx-auto"
-              >
-                <div className="bg-white p-6 space-y-4">
-                  {/* Survivor Path */}
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <span className="inline-block bg-neon-green text-black font-pixel text-[6px] px-2 py-0.5 mb-2">
-                        SURVIVOR PATH
-                      </span>
-                      <p className="font-bold text-black text-sm">
-                        PROCEED TO NEXT ROUND
-                      </p>
-                      <p className="text-zinc-500 text-xs">
-                        Next round starts in <span className="text-black font-bold">{nextRoundCountdown}S</span>
-                      </p>
-                    </div>
-                    <button
-                      onClick={onProceed}
-                      disabled={!isPrevailed}
-                      className={`px-8 py-3 font-pixel text-xs transition-colors whitespace-nowrap ${
-                        isPrevailed
-                          ? "bg-neon-green text-black hover:bg-neon-green/90"
-                          : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
-                      }`}
-                    >
-                      NEXT ROUND
-                    </button>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-zinc-200" />
-
-                  {/* Eliminated Path */}
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <span className="inline-block bg-zinc-400 text-white font-pixel text-[6px] px-2 py-0.5 mb-2">
-                        ELIMINATED PATH
-                      </span>
-                      <p className="font-bold text-zinc-400 text-sm">
-                        GAME OVER
-                      </p>
-                      <p className="text-zinc-400 text-xs">
-                        YOUR JOURNEY ENDS HERE
-                      </p>
-                    </div>
-                    <button
-                      onClick={onJoinAnother}
-                      disabled={isPrevailed}
-                      className={`px-6 py-3 font-pixel text-xs transition-colors whitespace-nowrap ${
-                        !isPrevailed
-                          ? "bg-neon-pink text-white hover:bg-neon-pink/90"
-                          : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
-                      }`}
-                    >
-                      JOIN ANOTHER ARENA
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-
+              <div className="text-[10px] font-mono text-white/50">Prepare for next round</div>
             </div>
-          </div>
-
-          {/* Footer - Fixed at bottom */}
-          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm px-6 py-3 flex flex-wrap justify-between items-center text-white/30 font-mono text-[8px] uppercase tracking-wider gap-4 z-10">
-            <div className="flex gap-6">
-              <span>LINE: SOROBAN_NETWORK_ACTIVE</span>
-              <span>ROUND {roundNumber + 1} COMMENCING IN {nextRoundCountdown}S</span>
-            </div>
-            <div className="flex gap-6">
-              <span>STAY IN THE MINORITY. SURVIVE.</span>
-              <span>YIELD FLOWING TO SURVIVORS VAULTS</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-neon-green rounded-full animate-pulse" />
-              <span>SYSTEM ONLINE: SOROBAN_NETWORK</span>
-            </div>
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
   );
-}
+};
+
+export default RoundResolvedOverlay;

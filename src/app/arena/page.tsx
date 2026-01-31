@@ -33,8 +33,8 @@ export default function ArenaPage() {
   const [isLoadingArena, setIsLoadingArena] = useState(false);
 
   // Round Resolution State
-  const [showRoundOverlay, setShowRoundOverlay] = useState(false);
-  const [roundResult, setRoundResult] = useState<"prevailed" | "voided">("prevailed");
+  const [isRoundResolved, setIsRoundResolved] = useState(false);
+  const [roundStatus, setRoundStatus] = useState<"survived" | "eliminated">("survived");
   const [currentRound, setCurrentRound] = useState(1);
 
   // Transaction Modal State
@@ -140,9 +140,9 @@ export default function ArenaPage() {
                   initialSeconds={15}
                   onTimeUp={() => {
                     // Simulate round resolution
-                    const userWon = selectedChoice === "tails"; // Mock: tails wins
-                    setRoundResult(userWon ? "prevailed" : "voided");
-                    setShowRoundOverlay(true);
+                    const userSurvived = selectedChoice === "tails"; // Mock: tails wins
+                    setRoundStatus(userSurvived ? "survived" : "eliminated");
+                    setIsRoundResolved(true);
                   }}
                 />
               </div>
@@ -341,25 +341,20 @@ export default function ArenaPage() {
 
       {/* Round Resolved Overlay */}
       <RoundResolvedOverlay
-        isOpen={showRoundOverlay}
-        status={roundResult}
+        isOpen={isRoundResolved}
+        status={roundStatus}
         roundNumber={currentRound}
-        casualties={42}
-        victors={18}
-        majorityPercent={70}
-        minorityPercent={30}
-        winnerPath="tails"
+        livePopulation={survivors.current}
+        totalPopulation={survivors.max}
+        eliminatedPercent={Math.round(((survivors.max - survivors.current) / survivors.max) * 100)}
+        currentPot={Math.round(currentStake * 3)}
+        potGrowth={12}
+        majorityChoice={selectedChoice ?? "heads"}
         txHash="0x7a3f...8b2c"
         onProceed={() => {
-          setShowRoundOverlay(false);
+          setIsRoundResolved(false);
           setCurrentRound((prev) => prev + 1);
           setSelectedChoice(null);
-        }}
-        onJoinAnother={() => {
-          setShowRoundOverlay(false);
-          setCurrentRound(1);
-          setSelectedChoice(null);
-          setIsJoined(false);
         }}
       />
 
